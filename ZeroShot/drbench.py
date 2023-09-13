@@ -7,7 +7,7 @@ from rouge_score import rouge_scorer
 
 lama_size = '7b'
 drbench_path = 'DrBench/Csv/summ_0821_dev.csv'
-model_path = f'/home/dima/Lama/Models/Llama-2-{lama_size}-chat-hf'
+model_path = f'/home/dima/Models/Lama/Llama-2-{lama_size}-chat-hf'
 
 system_prompt = 'You are a physician. Please list the most important ' \
                 'problems/diagnoses based on the progress note text ' \
