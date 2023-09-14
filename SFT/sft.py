@@ -13,7 +13,7 @@ from trl import SFTTrainer
 tqdm.pandas()
 
 lama_size = '7b'
-model_path = f'/home/dima/Lama/Models/Llama-2-{lama_size}-chat-hf'
+model_path = f'/home/dima/Models/Lama/Llama-2-{lama_size}-chat-hf'
 
 base_path = os.environ['DATA_ROOT']
 drbench_train_path = 'DrBench/Csv/summ_0821_train.csv'
@@ -24,14 +24,12 @@ data_csv_path = os.path.join(base_path, drbench_train_path)
 class ScriptArguments:
     """Parameters and their default settings"""
 
-    dataset_name: Optional[str] = field(
-        default="timdettmers/openassistant-guanaco", metadata={"help": "the dataset name"})
     dataset_text_field: Optional[str] = field(
         default="text", metadata={"help": "the text field of the dataset"})
     log_with: Optional[str] = field(
         default=None, metadata={"help": "use 'wandb' to log with wandb"})
     learning_rate: Optional[float] = field(
-        default=1.41e-5, metadata={"help": "the learning rate"})
+        default=5e-5, metadata={"help": "the learning rate"})
     batch_size: Optional[int] = field(
         default=32, metadata={"help": "the batch size"})
     seq_length: Optional[int] = field(
@@ -44,8 +42,6 @@ class ScriptArguments:
         default=False, metadata={"help": "load the model in 4 bits precision"})
     use_peft: Optional[bool] = field(
         default=True, metadata={"help": "Wether to use PEFT or not to train adapters"})
-    trust_remote_code: Optional[bool] = field(
-        default=True, metadata={"help": "Enable `trust_remote_code`"})
     output_dir: Optional[str] = field(
         default="Output", metadata={"help": "the output directory"})
     peft_lora_r: Optional[int] = field(
@@ -85,18 +81,13 @@ else:
     torch_dtype = None
 
 model = AutoModelForCausalLM.from_pretrained(
-    model_path,
+    pretrained_model_name_or_path=model_path,
     quantization_config=quantization_config,
     device_map=device_map,
     torch_dtype=torch_dtype)
 
-# model = AutoModelForCausalLM.from_pretrained(
-#     model_path,
-#     device_map='auto',
-#     load_in_8bit=True)
-
 # Step 2: Load the dataset
-# HF example only uses 'train' split; where about validation data?
+# todo: HF example only uses 'train' split; where is the validation data?
 # dataset = load_dataset(script_args.dataset_name, split="train")
 dataset = data.csv_to_fine_tune_data(data_csv_path)
 
