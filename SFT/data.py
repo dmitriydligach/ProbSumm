@@ -26,9 +26,14 @@ def csv_to_fine_tune_data(data_csv_path):
 
       assm = ''.join(c for c in assm if c in string.printable)
       summ = ''.join(c for c in summ if c in string.printable)
-      train_text = f'### Assessment Section ###\n\n{assm}\n\n' \
+      summ = summ.replace('#', '') # cleanup
+      summ = summ.replace(':', '') # cleanup
+
+      input_text = f'### Assessment Section ###\n\n{assm}\n\n' \
                    f'### Problem List ###\n\n{summ}'
-      train_samples.append(train_text)
+      prompt = f'<s>[INST] <<SYS>>\n{system_prompt}\n<</SYS>>' \
+               f'\n\n{input_text} [/INST]\n\n'
+      train_samples.append(prompt)
 
   data = datasets.Dataset.from_dict({'text': train_samples})
   # split_data = data.train_test_split(test_size=0.2, shuffle=True)
@@ -66,3 +71,4 @@ if __name__ == "__main__":
   data_csv_path = os.path.join(base_path, drbench_train_path)
 
   data = csv_to_fine_tune_data(data_csv_path)
+  print(data['text'][10])

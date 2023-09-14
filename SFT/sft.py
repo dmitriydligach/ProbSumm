@@ -51,7 +51,7 @@ class ScriptArguments:
     logging_steps: Optional[int] = field(
         default=1, metadata={"help": "the number of logging steps"})
     num_train_epochs: Optional[int] = field(
-        default=3, metadata={"help": "the number of training epochs"})
+        default=2, metadata={"help": "the number of training epochs"})
     max_steps: Optional[int] = field(
         default=-1, metadata={"help": "the number of training steps"})
     save_steps: Optional[int] = field(
@@ -80,6 +80,7 @@ else:
     quantization_config = None
     torch_dtype = None
 
+# construct the model
 model = AutoModelForCausalLM.from_pretrained(
     pretrained_model_name_or_path=model_path,
     quantization_config=quantization_config,
@@ -111,8 +112,8 @@ if script_args.use_peft:
     peft_config = LoraConfig(
         r=script_args.peft_lora_r,
         lora_alpha=script_args.peft_lora_alpha,
-        bias="none",
-        task_type="CAUSAL_LM")
+        bias='none',
+        task_type='CAUSAL_LM')
 else:
     peft_config = None
 
