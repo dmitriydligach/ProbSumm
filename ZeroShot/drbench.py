@@ -64,10 +64,9 @@ def main():
     end = time()
     inference_times.append(end - start)
 
-    # print('\n********** begin generated text **********\n')
+    print('************************************************\n')
     print(generated_outputs[0]['generated_text'])
-    # print('\n********** end generated text **********\n')
-    print(f'\n### Reference Summary ###\n\n{reference_output}\n\n')
+    print(f'\n### Reference Summary ###\n\n{reference_output}\n')
 
     # remove the the prompt from output and evaluate
     end_index = generated_outputs[0]['generated_text'].index('[/INST]')
