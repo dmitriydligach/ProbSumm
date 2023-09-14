@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
-import transformers, torch, os, pandas, string, numpy, sys
+import transformers, torch, os, numpy, sys
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from time import time
 from rouge_score import rouge_scorer
 
-import data
-
 sys.path.append('../Lib/')
+import data
 
 lama_size = '7b'
 drbench_dev_path = 'DrBench/Csv/summ_0821_dev.csv'
