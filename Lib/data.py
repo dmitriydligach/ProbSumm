@@ -26,6 +26,7 @@ def csv_to_fine_tune_data(data_csv_path):
 
       assm = ''.join(c for c in assm if c in string.printable)
       summ = ''.join(c for c in summ if c in string.printable)
+
       summ = summ.replace('#', '') # cleanup
       summ = summ.replace(':', '') # cleanup
 
@@ -41,11 +42,10 @@ def csv_to_fine_tune_data(data_csv_path):
 
   return data
 
-def csv_to_zero_shot_data():
+def csv_to_zero_shot_data(data_csv_path, include_subjective=False):
   """Get summarization input/output pair tuples"""
 
-  data_csv = os.path.join(base_path, drbench_dev_path)
-  df = pandas.read_csv(data_csv, dtype='str')
+  df = pandas.read_csv(data_csv_path, dtype='str')
 
   # input/output pairs
   ios = []
@@ -59,16 +59,32 @@ def csv_to_zero_shot_data():
       summ = ''.join(c for c in summ if c in string.printable)
       subj = ''.join(c for c in subj if c in string.printable)
 
-      input_text = f'### Subjective Section ###\n\n{subj}\n\n' \
-                   f'### Assessment Section ###\n\n{assm}'
-      ios.append((input_text, summ))
+      summ = summ.replace('#', '') # cleanup
+      summ = summ.replace(':', '') # cleanup
+
+      if include_subjective:
+        input_text = f'### Subjective Section ###\n\n{subj}\n\n' \
+                     f'### Assessment Section ###\n\n{assm}'
+      else:
+        input_text = f'### Assessment Section ###\n\n{assm}'
+
+      prompt = f'<s>[INST] <<SYS>>\n{system_prompt}\n<</SYS>>' \
+               f'\n\n{input_text} [/INST]\n\n'
+
+      ios.append((prompt, summ))
 
   return ios
 
 if __name__ == "__main__":
 
   base_path = os.environ['DATA_ROOT']
-  data_csv_path = os.path.join(base_path, drbench_train_path)
 
-  data = csv_to_fine_tune_data(data_csv_path)
-  print(data['text'][10])
+  # train_path = os.path.join(base_path, drbench_train_path)
+  # data = csv_to_fine_tune_data(train_path)
+  # print(data['text'][10])
+
+  dev_path = os.path.join(base_path, drbench_dev_path)
+  input, output = csv_to_zero_shot_data(dev_path)[10]
+  print(input)
+  print('------------')
+  print(output)
