@@ -6,9 +6,9 @@ import os, pandas, string, datasets
 drbench_dev_path = 'DrBench/Csv/summ_0821_dev.csv'
 drbench_train_path = 'DrBench/Csv/summ_0821_train.csv'
 
-system_prompt = 'You are a physician. Please list the most important ' \
-                'problems/diagnoses based on the progress note text ' \
-                'below. Only list the problems/diagnoses and nothing else. ' \
+system_prompt = 'You are a physician. Please list as a semicolon separated list ' \
+                'the most important problems/diagnoses based on the progress note ' \
+                'text below. Only list the problems/diagnoses and nothing else. ' \
                 'Be concise.'
 
 def csv_to_fine_tune_data(data_csv_path):
