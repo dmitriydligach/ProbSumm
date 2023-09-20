@@ -2,13 +2,14 @@
 
 from dataclasses import dataclass, field
 from typing import Optional
-import torch, os, sys, data
+import torch, os, sys
 from peft import LoraConfig
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, BitsAndBytesConfig, HfArgumentParser, TrainingArguments
 from trl import SFTTrainer
 
 sys.path.append('../Lib/')
+import data
 
 tqdm.pandas()
 

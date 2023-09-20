@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os, pandas, string, datasets
+from rouge_score import rouge_scorer
 
 drbench_dev_path = 'DrBench/Csv/summ_0821_dev.csv'
 drbench_train_path = 'DrBench/Csv/summ_0821_train.csv'
@@ -9,6 +10,16 @@ system_prompt = 'You are a physician. Please list as a semicolon separated list 
                 'the most important problems/diagnoses based on the progress note ' \
                 'text below. Only list the problems/diagnoses and nothing else. ' \
                 'Be concise.'
+
+def calc_rougel(generated_text, reference_text):
+  """Compute Rouge-L score"""
+
+  # {'rougeL': Score(precision=0.5, recall=0.6, fmeasure=0.5)}
+  scorer = rouge_scorer.RougeScorer(['rougeL'])
+  scores = scorer.score(reference_text, generated_text)
+  f1 = scores['rougeL'].fmeasure
+
+  return f1
 
 def csv_to_fine_tune_data(data_csv_path):
   """Format training data for fine-tuning and make a HF dataset"""

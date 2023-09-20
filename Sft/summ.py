@@ -3,7 +3,6 @@
 import transformers, torch, os, numpy, sys
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from time import time
-from rouge_score import rouge_scorer
 
 sys.path.append('../Lib/')
 import data
@@ -18,16 +17,6 @@ elif '13b' in model_path:
   os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 elif '70b' in model_path:
   os.environ['CUDA_VISIBLE_DEVICES'] = '2,3'
-
-def calc_rougel(generated_text, reference_text):
-  """Compute Rouge-L score"""
-
-  # {'rougeL': Score(precision=0.5, recall=0.6, fmeasure=0.5)}
-  scorer = rouge_scorer.RougeScorer(['rougeL'])
-  scores = scorer.score(reference_text, generated_text)
-  f1 = scores['rougeL'].fmeasure
-
-  return f1
 
 def main():
   """Ask for input and feed into llama2"""
@@ -71,7 +60,7 @@ def main():
     # remove the the prompt from output and evaluate
     end_index = generated_outputs[0]['generated_text'].index('[/INST]')
     generated_text = generated_outputs[0]['generated_text'][end_index+7:]
-    f1 = calc_rougel(generated_text.lower(), reference_output.lower())
+    f1 = data.calc_rougel(generated_text.lower(), reference_output.lower())
     f1s.append(f1)
 
   av_inf_time = numpy.mean(inference_times)
