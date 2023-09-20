@@ -3,12 +3,14 @@
 import transformers, torch, os, numpy, sys
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from time import time
+from peft import PeftModel
 
 sys.path.append('../Lib/')
 import data
 
 lama_size = '7b'
 drbench_dev_path = 'DrBench/Csv/summ_0821_dev.csv'
+lora_model = '/home/dima/Git/LLM/Sft/Output/'
 model_path = f'/home/dima/Models/Llama/Llama-2-{lama_size}-chat-hf'
 
 if '7b' in model_path:
@@ -29,6 +31,7 @@ def main():
     model_path,
     device_map='auto',
     load_in_8bit=True)
+  model = PeftModel.from_pretrained(model, lora_model)
   pipeline = transformers.pipeline(
     'text-generation',
     model=model,
