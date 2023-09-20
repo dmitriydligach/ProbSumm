@@ -78,12 +78,12 @@ if __name__ == "__main__":
 
   base_path = os.environ['DATA_ROOT']
 
-  # train_path = os.path.join(base_path, drbench_train_path)
-  # data = csv_to_fine_tune_data(train_path)
-  # print(data['text'][10])
+  train_path = os.path.join(base_path, drbench_train_path)
+  data = csv_to_fine_tune_data(train_path)
+  print(data['text'][10])
 
-  dev_path = os.path.join(base_path, drbench_dev_path)
-  input, output = csv_to_zero_shot_data(dev_path)[10]
-  print(input)
-  print('------------')
-  print(output)
+  # dev_path = os.path.join(base_path, drbench_dev_path)
+  # input, output = csv_to_zero_shot_data(dev_path)[10]
+  # print(input)
+  # print('------------')
+  # print(output)

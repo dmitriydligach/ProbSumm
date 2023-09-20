@@ -6,7 +6,7 @@ from time import time
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
-model_path = '/home/dima/Models/Lama/Llama-2-7b-chat-hf'
+model_path = '/home/dima/Models/Llama/Llama-2-7b-chat-hf'
 system_prompt = 'You are a helpful AI assistant. You always give precise and short answers.'
 
 def main():

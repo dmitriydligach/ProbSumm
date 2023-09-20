@@ -10,7 +10,7 @@ import data
 
 lama_size = '7b'
 drbench_dev_path = 'DrBench/Csv/summ_0821_dev.csv'
-model_path = f'/home/dima/Models/Lama/Llama-2-{lama_size}-chat-hf'
+model_path = f'/home/dima/Models/Llama/Llama-2-{lama_size}-chat-hf'
 
 if '7b' in model_path:
   os.environ['CUDA_VISIBLE_DEVICES'] = '0'

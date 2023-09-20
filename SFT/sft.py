@@ -13,7 +13,7 @@ sys.path.append('../Lib/')
 tqdm.pandas()
 
 lama_size = '7b'
-model_path = f'/home/dima/Models/Lama/Llama-2-{lama_size}-chat-hf'
+model_path = f'/home/dima/Models/Llama/Llama-2-{lama_size}-chat-hf'
 
 base_path = os.environ['DATA_ROOT']
 drbench_train_path = 'DrBench/Csv/summ_0821_train.csv'
