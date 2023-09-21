@@ -40,10 +40,11 @@ def csv_to_fine_tune_data(data_csv_path):
       summ = summ.replace('#', '') # cleanup
       summ = summ.replace(':', '') # cleanup
 
-      input_text = f'### Assessment Section ###\n\n{assm}\n\n' \
-                   f'### Problem List ###\n\n{summ}'
+      input_text = f'### Assessment Section ###\n\n{assm}'
+                   # f'### Problem List ###\n\n{summ}'
       prompt = f'<s>[INST] <<SYS>>\n{system_prompt}\n<</SYS>>' \
-               f'\n\n{input_text} [/INST]\n\n'
+               f'\n\n{input_text} [/INST]\n\n' \
+               f'### Problem List ###\n\n{summ}'
       train_samples.append(prompt)
 
   data = datasets.Dataset.from_dict({'text': train_samples})
