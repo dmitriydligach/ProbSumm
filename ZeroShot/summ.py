@@ -49,7 +49,7 @@ def main():
       num_return_sequences=1,
       eos_token_id=tokenizer.eos_token_id,
       temperature=0.001,
-      max_length=2000)
+      max_length=512)
     end = time()
     inference_times.append(end - start)
 

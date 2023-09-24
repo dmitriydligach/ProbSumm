@@ -13,14 +13,14 @@ import data
 
 tqdm.pandas()
 
-lama_size = '7b'
-model_path = f'/home/dima/Models/Llama/Llama-2-{lama_size}-chat-hf'
+lama_model = '7b-chat'
+model_path = f'/home/dima/Models/Llama/Llama-2-{lama_model}-hf'
+print('loading model:', model_path)
 
-base_path = os.environ['DATA_ROOT']
+data_base_path = os.environ['DATA_ROOT']
 drbench_train_path = 'DrBench/Csv/summ_0821_train.csv'
-data_csv_path = os.path.join(base_path, drbench_train_path)
+data_csv_path = os.path.join(data_base_path, drbench_train_path)
 
-# Define and parse arguments.
 @dataclass
 class ScriptArguments:
     """Parameters and their default settings"""
@@ -63,37 +63,28 @@ class ScriptArguments:
 parser = HfArgumentParser(ScriptArguments)
 script_args = parser.parse_args_into_dataclasses()[0]
 
-# Step 1: Load the model
 if script_args.load_in_8bit and script_args.load_in_4bit:
     raise ValueError("You can't load the model in 8 bits and 4 bits at the same time")
 elif script_args.load_in_8bit or script_args.load_in_4bit:
     quantization_config = BitsAndBytesConfig(
         load_in_8bit=script_args.load_in_8bit, load_in_4bit=script_args.load_in_4bit)
-
-    # Copy the model to each device
-    # todo: not sure what this does!
-    # device_map = {"": Accelerator().local_process_index}
     device_map = 'auto'
-
     torch_dtype = torch.bfloat16
 else:
     device_map = None
     quantization_config = None
     torch_dtype = None
 
-# construct the model
 model = AutoModelForCausalLM.from_pretrained(
     pretrained_model_name_or_path=model_path,
     quantization_config=quantization_config,
     device_map=device_map,
     torch_dtype=torch_dtype)
 
-# Step 2: Load the dataset
 # todo: HF example only uses 'train' split; where is the validation data?
 # dataset = load_dataset(script_args.dataset_name, split="train")
 dataset = data.csv_to_fine_tune_data(data_csv_path)
 
-# Step 3: Define the training arguments
 training_args = TrainingArguments(
     output_dir=script_args.output_dir,
     per_device_train_batch_size=script_args.batch_size,
@@ -108,17 +99,16 @@ training_args = TrainingArguments(
     push_to_hub=False,
     hub_model_id=None)
 
-# Step 4: Define the LoraConfig
 if script_args.use_peft:
     peft_config = LoraConfig(
         r=script_args.peft_lora_r,
         lora_alpha=script_args.peft_lora_alpha,
+        target_modules='q_proj,v_proj,gate_proj,up_proj,down_proj'.split(','),
         bias='none',
         task_type='CAUSAL_LM')
 else:
     peft_config = None
 
-# Step 5: Define the Trainer
 trainer = SFTTrainer(
     model=model,
     args=training_args,
@@ -129,5 +119,4 @@ trainer = SFTTrainer(
 
 trainer.train()
 
-# Step 6: Save the model
 trainer.save_model(script_args.output_dir)

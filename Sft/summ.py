@@ -8,17 +8,13 @@ from peft import PeftModel
 sys.path.append('../Lib/')
 import data
 
-lama_size = '7b'
+lama_model = '7b-chat'
+model_path = f'/home/dima/Models/Llama/Llama-2-{lama_model}-chat-hf'
+print('base model:', model_path)
+
 drbench_dev_path = 'DrBench/Csv/summ_0821_dev.csv'
 lora_model = '/home/dima/Git/LLM/Sft/Output/'
-model_path = f'/home/dima/Models/Llama/Llama-2-{lama_size}-chat-hf'
-
-if '7b' in model_path:
-  os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-elif '13b' in model_path:
-  os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-elif '70b' in model_path:
-  os.environ['CUDA_VISIBLE_DEVICES'] = '2,3'
+print('lora model:', lora_model)
 
 def main():
   """Ask for input and feed into llama2"""
@@ -52,7 +48,7 @@ def main():
       num_return_sequences=1,
       eos_token_id=tokenizer.eos_token_id,
       temperature=0.001,
-      max_length=2000)
+      max_length=512)
     end = time()
     inference_times.append(end - start)
 
