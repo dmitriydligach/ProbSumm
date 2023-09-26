@@ -9,7 +9,7 @@ sys.path.append('../Lib/')
 import data
 
 lama_model = '7b-chat'
-model_path = f'/home/dima/Models/Llama/Llama-2-{lama_model}-chat-hf'
+model_path = f'/home/dima/Models/Llama/Llama-2-{lama_model}-hf'
 print('base model:', model_path)
 
 drbench_dev_path = 'DrBench/Csv/summ_0821_dev.csv'

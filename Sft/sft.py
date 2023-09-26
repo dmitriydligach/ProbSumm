@@ -52,7 +52,7 @@ class ScriptArguments:
     logging_steps: Optional[int] = field(
         default=1, metadata={"help": "the number of logging steps"})
     num_train_epochs: Optional[int] = field(
-        default=2, metadata={"help": "the number of training epochs"})
+        default=5, metadata={"help": "the number of training epochs"})
     max_steps: Optional[int] = field(
         default=-1, metadata={"help": "the number of training steps"})
     save_steps: Optional[int] = field(
