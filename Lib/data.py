@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-import os, pandas, string, datasets
+import os, pandas, string, datasets, json
 from rouge_score import rouge_scorer
 
-drbench_dev_path = 'DrBench/Csv/summ_0821_dev.csv'
 drbench_train_path = 'DrBench/Csv/summ_0821_train.csv'
+drbench_dev_path = 'DrBench/Csv/summ_0821_dev.csv'
 
 system_prompt = 'You are a physician. Please list as a semicolon separated list ' \
                 'the most important problems/diagnoses based on the progress note ' \
@@ -21,6 +21,31 @@ def calc_rougel(generated_text, reference_text):
 
   return f1
 
+def csv_to_json(input_csv_path, output_json_path):
+  """Convert to json to use for SFT"""
+
+  df = pandas.read_csv(input_csv_path, dtype='str')
+
+  # list of dictionaries to save as json
+  samples = []
+
+  for assm, summ, in zip(df['Assessment'], df['Summary']):
+
+    # sometimes assm is empty and pandas returns a float
+    if type(assm) == str and type(summ) == str:
+      assm = ''.join(c for c in assm if c in string.printable)
+      summ = ''.join(c for c in summ if c in string.printable)
+      summ = summ.replace('#', '') # cleanup
+      summ = summ.replace(':', '') # cleanup
+
+      sample = {'instruction': system_prompt,
+                'input': assm,
+                'output': summ}
+      samples.append(sample)
+
+  json_file = open(output_json_path, 'w')
+  json.dump(samples, json_file, indent=2)
+
 def csv_to_fine_tune_data(data_csv_path):
   """Format training data for fine-tuning and make a HF dataset"""
 
@@ -33,10 +58,8 @@ def csv_to_fine_tune_data(data_csv_path):
 
     # sometimes assm is empty and pandas returns a float
     if type(assm) == str and type(summ) == str:
-
       assm = ''.join(c for c in assm if c in string.printable)
       summ = ''.join(c for c in summ if c in string.printable)
-
       summ = summ.replace('#', '') # cleanup
       summ = summ.replace(':', '') # cleanup
 
@@ -65,11 +88,9 @@ def csv_to_zero_shot_data(data_csv_path, include_subjective=False):
 
     # sometimes assm is empty and pandas returns a float
     if type(assm) == str and type(summ) == str and type(subj) == str:
-
       assm = ''.join(c for c in assm if c in string.printable)
       summ = ''.join(c for c in summ if c in string.printable)
       subj = ''.join(c for c in subj if c in string.printable)
-
       summ = summ.replace('#', '') # cleanup
       summ = summ.replace(':', '') # cleanup
 
@@ -91,8 +112,14 @@ if __name__ == "__main__":
   base_path = os.environ['DATA_ROOT']
 
   train_path = os.path.join(base_path, drbench_train_path)
-  data = csv_to_fine_tune_data(train_path)
-  print(data['text'][10])
+  dev_path = os.path.join(base_path, drbench_dev_path)
+
+  csv_to_json(train_path, '/home/dima/Temp/summ_train.json')
+  csv_to_json(dev_path, '/home/dima/Temp/summ_dev.json')
+
+  # train_path = os.path.join(base_path, drbench_train_path)
+  # data = csv_to_fine_tune_data(train_path)
+  # print(data['text'][10])
 
   # dev_path = os.path.join(base_path, drbench_dev_path)
   # input, output = csv_to_zero_shot_data(dev_path)[10]
