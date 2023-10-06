@@ -19,9 +19,6 @@ print('lora model:', lora_model)
 def main():
   """Ask for input and feed into llama2"""
 
-  dev_path = os.path.join(base_path, drbench_dev_path)
-  inputs_and_outputs = data.csv_to_zero_shot_data(dev_path)
-
   tokenizer = AutoTokenizer.from_pretrained(model_path)
   model = AutoModelForCausalLM.from_pretrained(
     model_path,
@@ -35,9 +32,11 @@ def main():
     torch_dtype=torch.float16,
     device_map='auto')
 
+  dev_path = os.path.join(base_path, drbench_dev_path)
+  inputs_and_outputs = data.csv_to_apaca_zero_shot_data(dev_path)
+
   f1s = []
   inference_times = []
-
   for prompt_text, reference_output in inputs_and_outputs:
 
     start = time()

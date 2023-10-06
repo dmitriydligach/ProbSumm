@@ -90,6 +90,27 @@ def csv_to_alpaca_format(data_csv_path):
 
   return data
 
+def csv_to_apaca_zero_shot_data(data_csv_path):
+  """Get summarization input/output pair tuples"""
+
+  df = pandas.read_csv(data_csv_path, dtype='str')
+
+  # input/output pairs
+  ios = []
+
+  for assm, summ, _ in zip(df['Assessment'], df['Summary'], df['S']):
+    if type(assm) == str and type(summ) == str:
+      summ = summ.replace('#', '') # cleanup
+      summ = summ.replace(':', '') # cleanup
+
+      input_text = f'instruction: {system_prompt}\n' \
+                   f'input: {assm}\n'
+      output_text = f'output: {summ}\n'
+
+      ios.append((input_text, output_text))
+
+  return ios
+
 def csv_to_zero_shot_data(data_csv_path, include_subjective=False):
   """Get summarization input/output pair tuples"""
 
