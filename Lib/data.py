@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, pandas, string, datasets, json
+import os, pandas, datasets, json
 from rouge_score import rouge_scorer
 
 drbench_train_path = 'DrBench/Csv/summ_0821_train.csv'
