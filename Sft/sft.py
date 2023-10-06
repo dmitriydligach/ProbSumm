@@ -81,9 +81,8 @@ model = AutoModelForCausalLM.from_pretrained(
     device_map=device_map,
     torch_dtype=torch_dtype)
 
-# todo: HF example only uses 'train' split; where is the validation data?
-# dataset = load_dataset(script_args.dataset_name, split="train")
-dataset = data.csv_to_fine_tune_data(data_csv_path)
+# dataset = data.csv_to_fine_tune_data(data_csv_path)
+dataset = data.csv_to_alpaca_format(data_csv_path)
 
 training_args = TrainingArguments(
     output_dir=script_args.output_dir,

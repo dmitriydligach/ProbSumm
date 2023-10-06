@@ -30,11 +30,7 @@ def csv_to_json(input_csv_path, output_json_path):
   samples = []
 
   for assm, summ, in zip(df['Assessment'], df['Summary']):
-
-    # sometimes assm is empty and pandas returns a float
     if type(assm) == str and type(summ) == str:
-      assm = ''.join(c for c in assm if c in string.printable)
-      summ = ''.join(c for c in summ if c in string.printable)
       summ = summ.replace('#', '') # cleanup
       summ = summ.replace(':', '') # cleanup
 
@@ -55,11 +51,7 @@ def csv_to_fine_tune_data(data_csv_path):
   train_samples = []
 
   for assm, summ, _ in zip(df['Assessment'], df['Summary'], df['S']):
-
-    # sometimes assm is empty and pandas returns a float
     if type(assm) == str and type(summ) == str:
-      assm = ''.join(c for c in assm if c in string.printable)
-      summ = ''.join(c for c in summ if c in string.printable)
       summ = summ.replace('#', '') # cleanup
       summ = summ.replace(':', '') # cleanup
 
@@ -76,6 +68,28 @@ def csv_to_fine_tune_data(data_csv_path):
 
   return data
 
+def csv_to_alpaca_format(data_csv_path):
+  """Format training data for fine-tuning and make a HF dataset"""
+
+  df = pandas.read_csv(data_csv_path, dtype='str')
+
+  # input/output pairs
+  train_samples = []
+
+  for assm, summ, _ in zip(df['Assessment'], df['Summary'], df['S']):
+    if type(assm) == str and type(summ) == str:
+      summ = summ.replace('#', '') # cleanup
+      summ = summ.replace(':', '') # cleanup
+
+      train_sample = f'instruction: {system_prompt}\n' \
+                     f'input: {assm}\n' \
+                     f'output: {summ}\n'
+      train_samples.append(train_sample)
+
+  data = datasets.Dataset.from_dict({'text': train_samples})
+
+  return data
+
 def csv_to_zero_shot_data(data_csv_path, include_subjective=False):
   """Get summarization input/output pair tuples"""
 
@@ -85,12 +99,7 @@ def csv_to_zero_shot_data(data_csv_path, include_subjective=False):
   ios = []
 
   for assm, summ, subj in zip(df['Assessment'], df['Summary'], df['S']):
-
-    # sometimes assm is empty and pandas returns a float
     if type(assm) == str and type(summ) == str and type(subj) == str:
-      assm = ''.join(c for c in assm if c in string.printable)
-      summ = ''.join(c for c in summ if c in string.printable)
-      subj = ''.join(c for c in subj if c in string.printable)
       summ = summ.replace('#', '') # cleanup
       summ = summ.replace(':', '') # cleanup
 
@@ -111,11 +120,8 @@ if __name__ == "__main__":
 
   base_path = os.environ['DATA_ROOT']
 
-  train_path = os.path.join(base_path, drbench_train_path)
-  dev_path = os.path.join(base_path, drbench_dev_path)
-
-  csv_to_json(train_path, '/home/dima/Temp/summ_train.json')
-  csv_to_json(dev_path, '/home/dima/Temp/summ_dev.json')
+  # csv_to_json(train_path, '/home/dima/Temp/summ_train.json')
+  # csv_to_json(dev_path, '/home/dima/Temp/summ_dev.json')
 
   # train_path = os.path.join(base_path, drbench_train_path)
   # data = csv_to_fine_tune_data(train_path)
@@ -124,5 +130,9 @@ if __name__ == "__main__":
   # dev_path = os.path.join(base_path, drbench_dev_path)
   # input, output = csv_to_zero_shot_data(dev_path)[10]
   # print(input)
-  # print('------------')
   # print(output)
+
+  train_path = os.path.join(base_path, drbench_train_path)
+  dev_path = os.path.join(base_path, drbench_dev_path)
+  samples = csv_to_alpaca_format(train_path)
+  print(samples['text'][0])
