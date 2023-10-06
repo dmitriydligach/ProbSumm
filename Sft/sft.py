@@ -8,7 +8,8 @@ from tqdm import tqdm
 from transformers import AutoModelForCausalLM, BitsAndBytesConfig, HfArgumentParser, TrainingArguments
 from trl import SFTTrainer
 
-from Lib import data
+sys.path.append('../Lib/')
+import data
 
 tqdm.pandas()
 
