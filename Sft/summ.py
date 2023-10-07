@@ -29,40 +29,33 @@ def main():
     'text-generation',
     model=model,
     tokenizer=tokenizer,
-    torch_dtype=torch.float16,
+    torch_dtype=torch.float16, # make sure this matches SFT
     device_map='auto')
 
   dev_path = os.path.join(base_path, drbench_dev_path)
   inputs_and_outputs = data.csv_to_apaca_zero_shot_data(dev_path)
 
   f1s = []
-  inference_times = []
-  for prompt_text, reference_output in inputs_and_outputs:
+  for input_text, reference_output in inputs_and_outputs:
 
-    start = time()
     generated_outputs = pipeline(
-      prompt_text,
+      input_text,
       do_sample=True,
       top_k=10,
       num_return_sequences=1,
       eos_token_id=tokenizer.eos_token_id,
       temperature=0.001,
       max_length=512)
-    end = time()
-    inference_times.append(end - start)
 
-    print('************************************************\n')
+    print('-'*50)
     print(generated_outputs[0]['generated_text'])
-    print(f'\n### Reference Summary ###\n\n{reference_output}\n')
+    print(f'\nreference summary: {reference_output}\n')
 
-    # remove the the prompt from output and evaluate
-    end_index = generated_outputs[0]['generated_text'].index('[/INST]')
-    generated_text = generated_outputs[0]['generated_text'][end_index+7:]
-    f1 = data.calc_rougel(generated_text.lower(), reference_output.lower())
+    # remove the prompt from output and evaluate
+    response = generated_outputs[0]['generated_text'][len(input_text):]
+    f1 = data.calc_rougel(response.lower(), reference_output.lower())
     f1s.append(f1)
 
-  av_inf_time = numpy.mean(inference_times)
-  print(f'\naverage inference time: {av_inf_time} seconds]')
   print('average f1:', numpy.mean(f1s))
 
 if __name__ == "__main__":
