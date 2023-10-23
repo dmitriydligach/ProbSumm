@@ -2,7 +2,6 @@
 
 import transformers, torch, os, numpy, sys
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from time import time
 from peft import PeftModel
 
 sys.path.append('../Lib/')
@@ -45,9 +44,9 @@ def main():
       num_return_sequences=1,
       eos_token_id=tokenizer.eos_token_id,
       temperature=0.001,
-      max_length=512)
+      max_length=512) # is this enough?
 
-    print('-'*50)
+    print('\n-'*50 + '\n')
     print(generated_outputs[0]['generated_text'])
     print(f'\nreference summary: {reference_output}\n')
 

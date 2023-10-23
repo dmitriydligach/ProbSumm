@@ -141,8 +141,11 @@ if __name__ == "__main__":
 
   base_path = os.environ['DATA_ROOT']
 
-  # csv_to_json(train_path, '/home/dima/Temp/summ_train.json')
-  # csv_to_json(dev_path, '/home/dima/Temp/summ_dev.json')
+  train_path = os.path.join(base_path, drbench_train_path)
+  dev_path = os.path.join(base_path, drbench_dev_path)
+
+  csv_to_json(train_path, '/home/dima/Temp/summ_train.json')
+  csv_to_json(dev_path, '/home/dima/Temp/summ_dev.json')
 
   # train_path = os.path.join(base_path, drbench_train_path)
   # data = csv_to_fine_tune_data(train_path)
@@ -153,7 +156,7 @@ if __name__ == "__main__":
   # print(input)
   # print(output)
 
-  train_path = os.path.join(base_path, drbench_train_path)
-  dev_path = os.path.join(base_path, drbench_dev_path)
-  samples = csv_to_alpaca_format(train_path)
-  print(samples['text'][0])
+  # train_path = os.path.join(base_path, drbench_train_path)
+  # dev_path = os.path.join(base_path, drbench_dev_path)
+  # samples = csv_to_alpaca_format(train_path)
+  # print(samples['text'][0])
