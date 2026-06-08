@@ -1,70 +1,77 @@
 #!/usr/bin/env python3
 
-import transformers, torch, os, numpy, sys
+import transformers, torch, os, numpy, sys, pandas
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from time import time
 
-sys.path.append('../Lib/')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../Lib'))
 import data
 
-lama_size = '7b'
+lama_size = '1B'
 drbench_dev_path = 'DrBench/Csv/summ_0821_dev.csv'
-model_path = f'/home/dima/Models/Llama/Llama-2-{lama_size}-chat-hf'
+model_path = f'/home1/shared/Models/Llama-3.2-{lama_size}-Instruct'
 
-if '7b' in model_path:
-  os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-elif '13b' in model_path:
-  os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-elif '70b' in model_path:
-  os.environ['CUDA_VISIBLE_DEVICES'] = '2,3'
+def load_data(csv_path):
+  """Return (assessment, summary) pairs from CSV"""
+
+  df = pandas.read_csv(csv_path, dtype='str')
+  pairs = []
+
+  for assm, summ, subj in zip(df['Assessment'], df['Summary'], df['S']):
+    if isinstance(assm, str) and isinstance(summ, str):
+      summ = summ.replace('#', '').replace(':', '')
+      pairs.append((assm, summ))
+
+  return pairs
 
 def main():
-  """Ask for input and feed into llama2"""
 
   dev_path = os.path.join(base_path, drbench_dev_path)
-  inputs_and_outputs = data.csv_to_zero_shot_data(dev_path)
+  pairs = load_data(dev_path)
 
   tokenizer = AutoTokenizer.from_pretrained(model_path)
   model = AutoModelForCausalLM.from_pretrained(
     model_path,
     device_map='auto',
-    load_in_8bit=True)
+    torch_dtype=torch.bfloat16)
   pipeline = transformers.pipeline(
     'text-generation',
     model=model,
-    tokenizer=tokenizer,
-    torch_dtype=torch.float16,
-    device_map='auto')
+    tokenizer=tokenizer)
 
   f1s = []
   inference_times = []
 
-  for prompt_text, reference_output in inputs_and_outputs:
+  for assessment, reference_output in pairs:
+
+    messages = [
+      {'role': 'system', 'content': data.system_prompt},
+      {'role': 'user', 'content': f'### Assessment Section ###\n\n{assessment}'},
+    ]
 
     start = time()
     generated_outputs = pipeline(
-      prompt_text,
-      do_sample=True,
-      top_k=10,
+      messages,
+      do_sample=False,
       num_return_sequences=1,
-      eos_token_id=tokenizer.eos_token_id,
-      temperature=0.001,
-      max_length=512)
+      max_new_tokens=256,
+      return_full_text=False)
     end = time()
     inference_times.append(end - start)
 
+    # with messages input + return_full_text=False the output is a list of message dicts
+    result = generated_outputs[0]['generated_text']
+    generated_text = result[-1]['content'] if isinstance(result, list) else result
+
     print('************************************************\n')
-    print(generated_outputs[0]['generated_text'])
+    print(generated_text)
     print(f'\n### Reference Summary ###\n\n{reference_output}\n')
 
-    # remove the the prompt from output and evaluate
-    end_index = generated_outputs[0]['generated_text'].index('[/INST]')
-    generated_text = generated_outputs[0]['generated_text'][end_index+7:]
     f1 = data.calc_rougel(generated_text.lower(), reference_output.lower())
     f1s.append(f1)
 
   av_inf_time = numpy.mean(inference_times)
-  print(f'\naverage inference time: {av_inf_time} seconds]')
+  print(f'\naverage inference time: {av_inf_time} seconds')
   print('average f1:', numpy.mean(f1s))
 
 if __name__ == "__main__":
