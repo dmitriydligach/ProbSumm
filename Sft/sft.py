@@ -60,6 +60,9 @@ script_args = parser.parse_args_into_dataclasses()[0]
 
 print('loading model:', script_args.model_name)
 
+local_rank = int(os.environ.get('LOCAL_RANK', -1))
+device_map = 'auto' if local_rank == -1 else {'': local_rank}
+
 if script_args.load_in_8bit and script_args.load_in_4bit:
     raise ValueError("You can't load the model in 8 bits and 4 bits at the same time")
 elif script_args.load_in_4bit:
@@ -68,14 +71,11 @@ elif script_args.load_in_4bit:
         bnb_4bit_quant_type='nf4',
         bnb_4bit_compute_dtype=torch.bfloat16,
         bnb_4bit_use_double_quant=True)
-    device_map = 'auto'
     torch_dtype = torch.bfloat16
 elif script_args.load_in_8bit:
     quantization_config = BitsAndBytesConfig(load_in_8bit=True)
-    device_map = 'auto'
     torch_dtype = torch.bfloat16
 else:
-    device_map = None
     quantization_config = None
     torch_dtype = torch.bfloat16
 
