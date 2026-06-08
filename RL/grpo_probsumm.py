@@ -60,9 +60,9 @@ def problem_coverage_reward(completions, **kwargs):
     rewards = []
 
     for content, reference in zip(contents, answers):
-        generated_answer = normalize(extract_answer(content))
+        generated_problems = [normalize(p) for p in extract_answer(content).split(';') if p.strip()]
         reference_problems = [normalize(p) for p in reference.split(';') if p.strip()]
-        reward = sum(1.0 for p in reference_problems if p in generated_answer)
+        reward = sum(1.0 for p in reference_problems if p in generated_problems)
         rewards.append(reward)
 
     return rewards
@@ -70,12 +70,12 @@ def problem_coverage_reward(completions, **kwargs):
 
 training_args = GRPOConfig(
     output_dir=OUTPUT_DIR,
-    learning_rate=1e-5,
+    learning_rate=5e-5,
     remove_unused_columns=False,  # keep 'answer' column for problem_coverage_reward
     gradient_accumulation_steps=8,
-    num_train_epochs=1,
+    num_train_epochs=3,
     bf16=True,
-    max_completion_length=512,
+    max_completion_length=768,
     num_generations=8,
     report_to=['tensorboard'],
     logging_steps=10,
@@ -86,6 +86,7 @@ training_args = GRPOConfig(
 trainer = GRPOTrainer(
     model=model,
     reward_funcs=[format_reward, problem_coverage_reward],
+    reward_weights=[2.0, 1.0],  # upweight format: it's a prerequisite for parsing coverage
     args=training_args,
     train_dataset=train_dataset,
     processing_class=tokenizer)
