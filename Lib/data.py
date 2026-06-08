@@ -90,6 +90,28 @@ def csv_to_alpaca_format(data_csv_path):
 
   return data
 
+def csv_to_llama3_chat_format(data_csv_path, tokenizer):
+  """Format training data using the Llama 3 chat template via apply_chat_template"""
+
+  df = pandas.read_csv(data_csv_path, dtype='str')
+
+  train_samples = []
+
+  for assm, summ, _ in zip(df['Assessment'], df['Summary'], df['S']):
+    if type(assm) == str and type(summ) == str:
+      summ = summ.replace('#', '')
+      summ = summ.replace(':', '')
+
+      messages = [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': f'### Assessment Section ###\n\n{assm}'},
+        {'role': 'assistant', 'content': summ},
+      ]
+      text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+      train_samples.append(text)
+
+  return datasets.Dataset.from_dict({'text': train_samples})
+
 def csv_to_apaca_zero_shot_data(data_csv_path):
   """Get summarization input/output pair tuples"""
 

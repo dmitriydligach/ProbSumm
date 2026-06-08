@@ -5,44 +5,39 @@ from typing import Optional
 import torch, os, sys
 from peft import LoraConfig
 from tqdm import tqdm
-from transformers import AutoModelForCausalLM, BitsAndBytesConfig, HfArgumentParser, TrainingArguments
-from trl import SFTTrainer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, HfArgumentParser
+from trl import SFTConfig, SFTTrainer
 
 sys.path.append('../Lib/')
 import data
 
 tqdm.pandas()
 
-lama_model = '7b-chat'
-model_path = f'/home/dima/Models/Llama/Llama-2-{lama_model}-hf'
-print('loading model:', model_path)
-
-data_base_path = os.environ['DATA_ROOT']
-drbench_train_path = 'DrBench/Csv/summ_0821_train.csv'
-data_csv_path = os.path.join(data_base_path, drbench_train_path)
-
 @dataclass
 class ScriptArguments:
     """Parameters and their default settings"""
 
+    model_name: Optional[str] = field(
+        default="/home1/shared/Models/Llama-3.2-1B-Instruct",
+        metadata={"help": "HF hub model ID or local path"})
     dataset_text_field: Optional[str] = field(
         default="text", metadata={"help": "the text field of the dataset"})
     log_with: Optional[str] = field(
-        default=None, metadata={"help": "use 'wandb' to log with wandb"})
+        default="none", metadata={"help": "use 'wandb' to log with wandb"})
     learning_rate: Optional[float] = field(
         default=5e-5, metadata={"help": "the learning rate"})
     batch_size: Optional[int] = field(
-        default=32, metadata={"help": "the batch size"})
+        default=2, metadata={"help": "the batch size"})
     seq_length: Optional[int] = field(
         default=512, metadata={"help": "Input sequence length"})
     gradient_accumulation_steps: Optional[int] = field(
         default=16, metadata={"help": "the number of gradient accumulation steps"})
     load_in_8bit: Optional[bool] = field(
-        default=True, metadata={"help": "load the model in 8 bits precision"})
+        default=False, metadata={"help": "load the model in 8 bits precision"})
     load_in_4bit: Optional[bool] = field(
-        default=False, metadata={"help": "load the model in 4 bits precision"})
+        default=True, metadata={"help": "load the model in 4 bits precision (QLoRA)"})
     use_peft: Optional[bool] = field(
-        default=True, metadata={"help": "Wether to use PEFT or not to train adapters"})
+        default=True, metadata={"help": "Whether to use PEFT or not to train adapters"})
     output_dir: Optional[str] = field(
         default="Output", metadata={"help": "the output directory"})
     peft_lora_r: Optional[int] = field(
@@ -63,28 +58,46 @@ class ScriptArguments:
 parser = HfArgumentParser(ScriptArguments)
 script_args = parser.parse_args_into_dataclasses()[0]
 
+print('loading model:', script_args.model_name)
+
 if script_args.load_in_8bit and script_args.load_in_4bit:
     raise ValueError("You can't load the model in 8 bits and 4 bits at the same time")
-elif script_args.load_in_8bit or script_args.load_in_4bit:
+elif script_args.load_in_4bit:
     quantization_config = BitsAndBytesConfig(
-        load_in_8bit=script_args.load_in_8bit, load_in_4bit=script_args.load_in_4bit)
+        load_in_4bit=True,
+        bnb_4bit_quant_type='nf4',
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_use_double_quant=True)
+    device_map = 'auto'
+    torch_dtype = torch.bfloat16
+elif script_args.load_in_8bit:
+    quantization_config = BitsAndBytesConfig(load_in_8bit=True)
     device_map = 'auto'
     torch_dtype = torch.bfloat16
 else:
     device_map = None
     quantization_config = None
-    torch_dtype = None
+    torch_dtype = torch.bfloat16
+
+tokenizer = AutoTokenizer.from_pretrained(script_args.model_name)
+tokenizer.pad_token = tokenizer.eos_token
+tokenizer.padding_side = 'right'
+tokenizer.model_max_length = script_args.seq_length
 
 model = AutoModelForCausalLM.from_pretrained(
-    pretrained_model_name_or_path=model_path,
+    pretrained_model_name_or_path=script_args.model_name,
     quantization_config=quantization_config,
     device_map=device_map,
-    torch_dtype=torch_dtype)
+    dtype=torch_dtype)
+model.config.use_cache = False
 
-# dataset = data.csv_to_fine_tune_data(data_csv_path)
-dataset = data.csv_to_alpaca_format(data_csv_path)
+data_base_path = os.environ['DATA_ROOT']
+drbench_train_path = 'DrBench/Csv/summ_0821_train.csv'
+data_csv_path = os.path.join(data_base_path, drbench_train_path)
 
-training_args = TrainingArguments(
+dataset = data.csv_to_llama3_chat_format(data_csv_path, tokenizer)
+
+training_args = SFTConfig(
     output_dir=script_args.output_dir,
     per_device_train_batch_size=script_args.batch_size,
     gradient_accumulation_steps=script_args.gradient_accumulation_steps,
@@ -95,14 +108,18 @@ training_args = TrainingArguments(
     report_to=script_args.log_with,
     save_steps=script_args.save_steps,
     save_total_limit=script_args.save_total_limit,
+    bf16=True,
+    gradient_checkpointing=True,
+    gradient_checkpointing_kwargs={"use_reentrant": False},
     push_to_hub=False,
-    hub_model_id=None)
+    hub_model_id=None,
+    dataset_text_field=script_args.dataset_text_field)
 
 if script_args.use_peft:
     peft_config = LoraConfig(
         r=script_args.peft_lora_r,
         lora_alpha=script_args.peft_lora_alpha,
-        target_modules='q_proj,v_proj,gate_proj,up_proj,down_proj'.split(','),
+        target_modules='q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj'.split(','),
         bias='none',
         task_type='CAUSAL_LM')
 else:
@@ -111,9 +128,8 @@ else:
 trainer = SFTTrainer(
     model=model,
     args=training_args,
-    max_seq_length=script_args.seq_length,
     train_dataset=dataset,
-    dataset_text_field=script_args.dataset_text_field,
+    processing_class=tokenizer,
     peft_config=peft_config)
 
 trainer.train()
