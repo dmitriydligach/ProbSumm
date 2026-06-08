@@ -13,7 +13,7 @@ from probsumm_utils import (MODEL_ID, DRBENCH_DEV_PATH,
 TRAINED_MODEL_DIR = 'Model'
 
 
-def evaluate(model, tokenizer, dataset):
+def evaluate(model, tokenizer, dataset, output_file=None):
     """Run greedy decoding on all examples and return average Rouge-L."""
 
     model.eval()
@@ -41,6 +41,12 @@ def evaluate(model, tokenizer, dataset):
         f1 = lib_data.calc_rougel(generated_answer.lower(), reference.lower())
         f1s.append(f1)
 
+        if output_file:
+            output_file.write(f'Reference: {reference}\n')
+            output_file.write(f'Generated:\n{generated_text}\n')
+            output_file.write(f'Rouge-L: {f1:.4f}\n')
+            output_file.write('-' * 80 + '\n')
+
     return numpy.mean(f1s)
 
 
@@ -65,7 +71,9 @@ torch.cuda.empty_cache()
 print(f'\nEvaluating trained model: {TRAINED_MODEL_DIR}')
 base_model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype='auto', device_map='auto')
 trained_model = PeftModel.from_pretrained(base_model, TRAINED_MODEL_DIR)
-trained_f1 = evaluate(trained_model, tokenizer, dev_dataset)
+output_path = os.path.join(os.path.dirname(__file__), 'eval_output.txt')
+with open(output_path, 'w') as f:
+    trained_f1 = evaluate(trained_model, tokenizer, dev_dataset, output_file=f)
 
 # --- Results ---
 print('\n=== ProbSumm Evaluation Results (Rouge-L F1) ===')

@@ -47,13 +47,7 @@ def format_reward(completions, **kwargs):
 
 
 def problem_coverage_reward(completions, **kwargs):
-    """Reward 1.0 for each reference problem found in the generated answer.
-
-    Problems in the reference summary are split on ';'. Each reference problem
-    that appears (case-insensitive substring) in the generated <answer> block
-    contributes 1.0 to the reward, so the maximum reward equals the number of
-    reference problems.
-    """
+    """Reward 1.0 for each reference problem exactly matched in the generated answer."""
 
     answers = kwargs['answer']
     contents = [completion[0]['content'] for completion in completions]
@@ -86,7 +80,6 @@ training_args = GRPOConfig(
 trainer = GRPOTrainer(
     model=model,
     reward_funcs=[format_reward, problem_coverage_reward],
-    reward_weights=[2.0, 1.0],  # upweight format: it's a prerequisite for parsing coverage
     args=training_args,
     train_dataset=train_dataset,
     processing_class=tokenizer)

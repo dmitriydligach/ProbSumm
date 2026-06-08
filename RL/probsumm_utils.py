@@ -1,5 +1,8 @@
 import re, pandas
 from datasets import Dataset
+from rouge_score import rouge_scorer as rouge_scorer_lib
+
+_scorer = rouge_scorer_lib.RougeScorer(['rougeL'])
 
 MODEL_ID = '/home1/shared/Models/Llama-3.2-1B-Instruct'
 
@@ -54,3 +57,9 @@ def normalize(text):
     """Lowercase and collapse whitespace."""
 
     return re.sub(r'\s+', ' ', text.lower().strip())
+
+
+def calc_rougel(generated, reference):
+    """Return Rouge-L F1 between two strings."""
+
+    return _scorer.score(reference, generated)['rougeL'].fmeasure
