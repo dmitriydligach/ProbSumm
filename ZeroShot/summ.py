@@ -33,7 +33,7 @@ def main():
   model = AutoModelForCausalLM.from_pretrained(
     model_path,
     device_map='auto',
-    torch_dtype=torch.bfloat16)
+    dtype=torch.bfloat16)
   pipeline = transformers.pipeline(
     'text-generation',
     model=model,
