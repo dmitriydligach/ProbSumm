@@ -47,18 +47,25 @@ def format_reward(completions, **kwargs):
 
 
 def problem_coverage_reward(completions, **kwargs):
-    """Recall reward: fraction of reference problems exactly matched in the generated answer (0–1)."""
+    """F1 reward over exact-matched problems — penalizes both missed and extra problems (0–1)."""
 
     answers = kwargs['answer']
     contents = [completion[0]['content'] for completion in completions]
     rewards = []
 
     for content, reference in zip(contents, answers):
-        generated_problems = [normalize(p) for p in extract_answer(content).split(';') if p.strip()]
-        reference_problems = [normalize(p) for p in reference.split(';') if p.strip()]
-        matches = sum(1.0 for p in reference_problems if p in generated_problems)
-        reward = matches / len(reference_problems) if reference_problems else 0.0
-        rewards.append(reward)
+        generated_problems = set(normalize(p) for p in extract_answer(content).split(';') if p.strip())
+        reference_problems = set(normalize(p) for p in reference.split(';') if p.strip())
+
+        if not generated_problems or not reference_problems:
+            rewards.append(0.0)
+            continue
+
+        tp = len(generated_problems & reference_problems)
+        precision = tp / len(generated_problems)
+        recall = tp / len(reference_problems)
+        f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+        rewards.append(f1)
 
     return rewards
 
