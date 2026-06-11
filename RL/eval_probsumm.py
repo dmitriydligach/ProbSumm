@@ -51,10 +51,12 @@ def evaluate(model, tokenizer, dataset, output_file=None):
 
 
 data_base_path = os.environ['DATA_ROOT']
-dev_csv_path = os.path.join(data_base_path, cfg['data']['dev_path'])
+train_csv_path = os.path.join(data_base_path, cfg['data']['train_path'])
 
-print('Loading dev set...')
-dev_dataset = load_dataset_from_csv(dev_csv_path)
+print('Loading dev set (last 10% of train)...')
+full_dataset = load_dataset_from_csv(train_csv_path)
+split = int(len(full_dataset) * 0.9)
+dev_dataset = full_dataset.select(range(split, len(full_dataset)))
 
 tokenizer = AutoTokenizer.from_pretrained(cfg['model_id'], clean_up_tokenization_spaces=False)
 
