@@ -4,8 +4,9 @@
     "train_path": "ProbSumm/BioNLP2023-1A-Train.csv",
     "dev_path": "ProbSumm/BioNLP2023-1A-Test.csv",
     "input_columns": [
-      {"column": "Subjective Sections", "header": "Subjective Section"},
-      {"column": "Assessment", "header": "Assessment Section"}
+      {"column": "Assessment", "header": "Assessment"},
+      {"column": "Subjective Sections", "header": "Subjective"},
+      {"column":  "Objective Sections", "header": "Objective"}
     ]
   },
   "output_dir": "Model",
@@ -20,6 +21,7 @@
     "gradient_accumulation_steps": 8,
     "num_train_epochs": 3,
     "bf16": true,
+    "max_prompt_length": 2048,
     "max_completion_length": 768,
     "num_generations": 8,
     "logging_steps": 10,

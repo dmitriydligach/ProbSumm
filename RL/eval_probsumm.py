@@ -55,10 +55,17 @@ dev_csv_path = os.path.join(data_base_path, cfg['data']['dev_path'])
 
 print('Loading dev set...')
 dev_dataset = load_dataset_from_csv(dev_csv_path)
-dev_dataset = dev_dataset.map(make_conversation)
-print(f'Dev examples: {len(dev_dataset)}')
 
 tokenizer = AutoTokenizer.from_pretrained(cfg['model_id'], clean_up_tokenization_spaces=False)
+
+def truncate_prompt(example):
+    tokens = tokenizer(example['input_text'], truncation=True, max_length=cfg['training']['max_prompt_length'])
+    example['input_text'] = tokenizer.decode(tokens['input_ids'], skip_special_tokens=True)
+    return example
+
+dev_dataset = dev_dataset.map(truncate_prompt)
+dev_dataset = dev_dataset.map(make_conversation)
+print(f'Dev examples: {len(dev_dataset)}')
 
 # --- Base model ---
 print(f'\nEvaluating base model: {cfg["model_id"]}')

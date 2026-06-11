@@ -17,7 +17,7 @@ def load_config():
 # semicolon-separated problem list inside <answer> tags so reward functions
 # can parse it unambiguously.
 SYSTEM_PROMPT = (
-    "You are a physician. Based on the clinical note assessment section provided, "
+    "You are a physician. Based on the clinical note sections provided, "
     "identify the most important problems/diagnoses. "
     "First reason through the note in <think> </think> tags, then output the problems "
     "as a semicolon-separated list inside <answer> </answer> tags. "

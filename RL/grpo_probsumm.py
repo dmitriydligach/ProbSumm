@@ -12,14 +12,24 @@ train_csv_path = os.path.join(data_base_path, cfg['data']['train_path'])
 
 print('Loading training data...')
 train_dataset = load_dataset_from_csv(train_csv_path)
-train_dataset = train_dataset.map(make_conversation)
-
-print(f'Training examples: {len(train_dataset)}')
 
 local_rank = int(os.environ.get('LOCAL_RANK', -1))
 device_map = 'auto' if local_rank == -1 else {'': local_rank}
 
 tokenizer = AutoTokenizer.from_pretrained(cfg['model_id'], clean_up_tokenization_spaces=False)
+
+max_prompt_length = cfg['training']['max_prompt_length']
+
+def truncate_prompt(example):
+    """Truncate input_text to max_prompt_length tokens before conversation formatting."""
+    tokens = tokenizer(example['input_text'], truncation=True, max_length=max_prompt_length)
+    example['input_text'] = tokenizer.decode(tokens['input_ids'], skip_special_tokens=True)
+    return example
+
+train_dataset = train_dataset.map(truncate_prompt)
+train_dataset = train_dataset.map(make_conversation)
+
+print(f'Training examples: {len(train_dataset)}')
 
 print(f'Loading model: {cfg["model_id"]}...')
 model = AutoModelForCausalLM.from_pretrained(cfg['model_id'], torch_dtype='auto', device_map=device_map)
