@@ -26,19 +26,33 @@ SYSTEM_PROMPT = (
 
 
 def load_dataset_from_csv(csv_path):
-    """Return a HuggingFace Dataset with 'assessment', 'subjective', and 'answer' columns."""
+    """Return a HuggingFace Dataset with 'input_text' and 'answer' columns.
+
+    Which CSV columns are included in input_text is controlled by
+    data.input_columns in config.json — remove or reorder entries there
+    to change what the model sees.
+    """
+
+    cfg = load_config()
+    input_columns = cfg['data']['input_columns']
 
     df = pandas.read_csv(csv_path, dtype='str')
     rows = []
 
-    for assm, summ, subj in zip(df['Assessment'], df['Summary'], df['Subjective Sections']):
-        if isinstance(assm, str) and isinstance(summ, str):
-            summ = summ.replace('#', '').replace(':', '').strip()
-            rows.append({
-                'assessment': assm,
-                'subjective': subj if isinstance(subj, str) else '',
-                'answer': summ,
-            })
+    for _, row in df.iterrows():
+        summ = row.get('Summary', '')
+        if not isinstance(summ, str):
+            continue
+        summ = summ.replace('#', '').replace(':', '').strip()
+
+        parts = []
+        for col_spec in input_columns:
+            val = row.get(col_spec['column'], '')
+            if isinstance(val, str) and val.strip():
+                parts.append(f'### {col_spec["header"]} ###\n\n{val}')
+
+        if parts:
+            rows.append({'input_text': '\n\n'.join(parts), 'answer': summ})
 
     return Dataset.from_list(rows)
 
@@ -46,15 +60,10 @@ def load_dataset_from_csv(csv_path):
 def make_conversation(example):
     """Map dataset row to the prompt/answer format expected by GRPOTrainer."""
 
-    user_content = (
-        f'### Subjective Section ###\n\n{example["subjective"]}\n\n'
-        f'### Assessment Section ###\n\n{example["assessment"]}'
-    ) if example['subjective'] else f'### Assessment Section ###\n\n{example["assessment"]}'
-
     return {
         'prompt': [
             {'role': 'system', 'content': SYSTEM_PROMPT},
-            {'role': 'user', 'content': user_content},
+            {'role': 'user', 'content': example['input_text']},
         ],
     }
 

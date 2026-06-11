@@ -41,7 +41,7 @@ def evaluate(model, tokenizer, dataset, output_file=None):
         f1s.append(f1)
 
         if output_file:
-            output_file.write(f'Input: {example["assessment"]}\n')
+            output_file.write(f'Input: {example["input_text"]}\n')
             output_file.write(f'Reference: {reference}\n')
             output_file.write(f'Generated:\n{generated_text}\n')
             output_file.write(f'Rouge-L: {f1:.4f}\n')
