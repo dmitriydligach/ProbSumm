@@ -2,14 +2,13 @@ import re, os
 from peft import LoraConfig, get_peft_model
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import GRPOConfig, GRPOTrainer
-from probsumm_utils import (MODEL_ID, DRBENCH_TRAIN_PATH,
-                             load_dataset_from_csv, make_conversation,
+from probsumm_utils import (load_config, load_dataset_from_csv, make_conversation,
                              extract_answer, normalize)
 
-OUTPUT_DIR = 'Model'
+cfg = load_config()
 
 data_base_path = os.environ['DATA_ROOT']
-train_csv_path = os.path.join(data_base_path, DRBENCH_TRAIN_PATH)
+train_csv_path = os.path.join(data_base_path, cfg['data']['train_path'])
 
 print('Loading training data...')
 train_dataset = load_dataset_from_csv(train_csv_path)
@@ -20,18 +19,17 @@ print(f'Training examples: {len(train_dataset)}')
 local_rank = int(os.environ.get('LOCAL_RANK', -1))
 device_map = 'auto' if local_rank == -1 else {'': local_rank}
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, clean_up_tokenization_spaces=False)
+tokenizer = AutoTokenizer.from_pretrained(cfg['model_id'], clean_up_tokenization_spaces=False)
 
-print(f'Loading model: {MODEL_ID}...')
-model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype='auto', device_map=device_map)
+print(f'Loading model: {cfg["model_id"]}...')
+model = AutoModelForCausalLM.from_pretrained(cfg['model_id'], torch_dtype='auto', device_map=device_map)
 
 lora_config = LoraConfig(
     task_type='CAUSAL_LM',
-    r=32,
-    lora_alpha=64,
-    lora_dropout=0.1,
-    target_modules=['q_proj', 'k_proj', 'v_proj', 'o_proj',
-                    'gate_proj', 'up_proj', 'down_proj'])
+    r=cfg['lora']['r'],
+    lora_alpha=cfg['lora']['lora_alpha'],
+    lora_dropout=cfg['lora']['lora_dropout'],
+    target_modules=cfg['lora']['target_modules'])
 
 print('Applying LoRA...')
 model = get_peft_model(model, lora_config)
@@ -71,19 +69,19 @@ def problem_coverage_reward(completions, **kwargs):
 
 
 training_args = GRPOConfig(
-    output_dir=OUTPUT_DIR,
-    learning_rate=5e-5,
+    output_dir=cfg['output_dir'],
+    learning_rate=cfg['training']['learning_rate'],
     remove_unused_columns=False,  # keep 'answer' column for problem_coverage_reward
-    gradient_accumulation_steps=8,
-    num_train_epochs=3,
-    bf16=True,
-    max_completion_length=768,
-    num_generations=8,
+    gradient_accumulation_steps=cfg['training']['gradient_accumulation_steps'],
+    num_train_epochs=cfg['training']['num_train_epochs'],
+    bf16=cfg['training']['bf16'],
+    max_completion_length=cfg['training']['max_completion_length'],
+    num_generations=cfg['training']['num_generations'],
     report_to=['tensorboard'],
-    logging_steps=10,
+    logging_steps=cfg['training']['logging_steps'],
     push_to_hub=False,
     save_strategy='steps',
-    save_steps=50)
+    save_steps=cfg['training']['save_steps'])
 
 trainer = GRPOTrainer(
     model=model,
@@ -95,5 +93,5 @@ trainer = GRPOTrainer(
 print('Starting GRPO training...')
 trainer.train()
 
-print(f'Saving model to {OUTPUT_DIR}...')
-trainer.save_model(OUTPUT_DIR)
+print(f'Saving model to {cfg["output_dir"]}...')
+trainer.save_model(cfg['output_dir'])

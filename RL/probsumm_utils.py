@@ -1,13 +1,17 @@
-import re, pandas
+import re, json, pandas
+from pathlib import Path
 from datasets import Dataset
 from rouge_score import rouge_scorer as rouge_scorer_lib
 
 _scorer = rouge_scorer_lib.RougeScorer(['rougeL'])
 
-MODEL_ID = '/home1/shared/Models/Llama-3.2-1B-Instruct'
+_CONFIG_PATH = Path(__file__).parent / 'config.json'
 
-DRBENCH_TRAIN_PATH = 'DrBench/Csv/summ_0821_train.csv'
-DRBENCH_DEV_PATH = 'DrBench/Csv/summ_0821_dev.csv'
+
+def load_config():
+    """Load and return the JSON config from the RL directory."""
+    with open(_CONFIG_PATH) as f:
+        return json.load(f)
 
 # The system prompt instructs the model to reason first, then output a
 # semicolon-separated problem list inside <answer> tags so reward functions
@@ -22,15 +26,19 @@ SYSTEM_PROMPT = (
 
 
 def load_dataset_from_csv(csv_path):
-    """Return a HuggingFace Dataset with 'assessment' and 'answer' columns."""
+    """Return a HuggingFace Dataset with 'assessment', 'subjective', and 'answer' columns."""
 
     df = pandas.read_csv(csv_path, dtype='str')
     rows = []
 
-    for assm, summ in zip(df['Assessment'], df['Summary']):
+    for assm, summ, subj in zip(df['Assessment'], df['Summary'], df['Subjective Sections']):
         if isinstance(assm, str) and isinstance(summ, str):
             summ = summ.replace('#', '').replace(':', '').strip()
-            rows.append({'assessment': assm, 'answer': summ})
+            rows.append({
+                'assessment': assm,
+                'subjective': subj if isinstance(subj, str) else '',
+                'answer': summ,
+            })
 
     return Dataset.from_list(rows)
 
@@ -38,10 +46,15 @@ def load_dataset_from_csv(csv_path):
 def make_conversation(example):
     """Map dataset row to the prompt/answer format expected by GRPOTrainer."""
 
+    user_content = (
+        f'### Subjective Section ###\n\n{example["subjective"]}\n\n'
+        f'### Assessment Section ###\n\n{example["assessment"]}'
+    ) if example['subjective'] else f'### Assessment Section ###\n\n{example["assessment"]}'
+
     return {
         'prompt': [
             {'role': 'system', 'content': SYSTEM_PROMPT},
-            {'role': 'user', 'content': f'### Assessment Section ###\n\n{example["assessment"]}'},
+            {'role': 'user', 'content': user_content},
         ],
     }
 

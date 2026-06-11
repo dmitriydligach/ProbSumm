@@ -6,11 +6,10 @@ from tqdm import tqdm
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../Lib'))
 import data as lib_data
 
-from probsumm_utils import (MODEL_ID, DRBENCH_DEV_PATH,
-                             load_dataset_from_csv, make_conversation,
+from probsumm_utils import (load_config, load_dataset_from_csv, make_conversation,
                              extract_answer)
 
-TRAINED_MODEL_DIR = 'Model'
+cfg = load_config()
 
 
 def evaluate(model, tokenizer, dataset, output_file=None):
@@ -27,8 +26,8 @@ def evaluate(model, tokenizer, dataset, output_file=None):
         with torch.no_grad():
             output_ids = model.generate(
                 **inputs,
-                max_new_tokens=512,
-                do_sample=False,
+                max_new_tokens=cfg['generation']['max_new_tokens'],
+                do_sample=cfg['generation']['do_sample'],
                 pad_token_id=tokenizer.eos_token_id)
 
         input_length = inputs['input_ids'].shape[1]
@@ -52,26 +51,26 @@ def evaluate(model, tokenizer, dataset, output_file=None):
 
 
 data_base_path = os.environ['DATA_ROOT']
-dev_csv_path = os.path.join(data_base_path, DRBENCH_DEV_PATH)
+dev_csv_path = os.path.join(data_base_path, cfg['data']['dev_path'])
 
 print('Loading dev set...')
 dev_dataset = load_dataset_from_csv(dev_csv_path)
 dev_dataset = dev_dataset.map(make_conversation)
 print(f'Dev examples: {len(dev_dataset)}')
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, clean_up_tokenization_spaces=False)
+tokenizer = AutoTokenizer.from_pretrained(cfg['model_id'], clean_up_tokenization_spaces=False)
 
 # --- Base model ---
-print(f'\nEvaluating base model: {MODEL_ID}')
-base_model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype='auto', device_map='auto')
+print(f'\nEvaluating base model: {cfg["model_id"]}')
+base_model = AutoModelForCausalLM.from_pretrained(cfg['model_id'], torch_dtype='auto', device_map='auto')
 base_f1 = evaluate(base_model, tokenizer, dev_dataset)
 del base_model
 torch.cuda.empty_cache()
 
 # --- Trained model ---
-print(f'\nEvaluating trained model: {TRAINED_MODEL_DIR}')
-base_model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype='auto', device_map='auto')
-trained_model = PeftModel.from_pretrained(base_model, TRAINED_MODEL_DIR)
+print(f'\nEvaluating trained model: {cfg["output_dir"]}')
+base_model = AutoModelForCausalLM.from_pretrained(cfg['model_id'], torch_dtype='auto', device_map='auto')
+trained_model = PeftModel.from_pretrained(base_model, cfg['output_dir'])
 output_path = os.path.join(os.path.dirname(__file__), 'eval_output.txt')
 with open(output_path, 'w') as f:
     trained_f1 = evaluate(trained_model, tokenizer, dev_dataset, output_file=f)
