@@ -97,7 +97,7 @@ def csv_to_llama3_chat_format(data_csv_path, tokenizer):
 
   train_samples = []
 
-  for assm, summ, _ in zip(df['Assessment'], df['Summary'], df['S']):
+  for assm, summ in zip(df['Assessment'], df['Summary']):
     if type(assm) == str and type(summ) == str:
       summ = summ.replace('#', '')
       summ = summ.replace(':', '')

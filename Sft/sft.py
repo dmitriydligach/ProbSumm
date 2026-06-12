@@ -92,8 +92,8 @@ model = AutoModelForCausalLM.from_pretrained(
 model.config.use_cache = False
 
 data_base_path = os.environ['DATA_ROOT']
-drbench_train_path = 'DrBench/Csv/summ_0821_train.csv'
-data_csv_path = os.path.join(data_base_path, drbench_train_path)
+train_csv_path = 'ProbSumm/BioNLP2023-1A-Train.csv'
+data_csv_path = os.path.join(data_base_path, train_csv_path)
 
 dataset = data.csv_to_llama3_chat_format(data_csv_path, tokenizer)
 
