@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../Lib'))
 import data
 
 lama_size = '1B'
-drbench_dev_path = 'DrBench/Csv/summ_0821_dev.csv'
+train_csv_path = 'ProbSumm/BioNLP2023-1A-Train.csv'
 model_path = f'/home1/shared/Models/Llama-3.2-{lama_size}-Instruct'
 
 def load_data(csv_path):
@@ -17,7 +17,7 @@ def load_data(csv_path):
   df = pandas.read_csv(csv_path, dtype='str')
   pairs = []
 
-  for assm, summ, subj in zip(df['Assessment'], df['Summary'], df['S']):
+  for assm, summ in zip(df['Assessment'], df['Summary']):
     if isinstance(assm, str) and isinstance(summ, str):
       summ = summ.replace('#', '').replace(':', '')
       pairs.append((assm, summ))
@@ -26,8 +26,10 @@ def load_data(csv_path):
 
 def main():
 
-  dev_path = os.path.join(base_path, drbench_dev_path)
-  pairs = load_data(dev_path)
+  csv_path = os.path.join(base_path, train_csv_path)
+  all_pairs = load_data(csv_path)
+  split = int(len(all_pairs) * 0.9)
+  pairs = all_pairs[split:]
 
   tokenizer = AutoTokenizer.from_pretrained(model_path)
   model = AutoModelForCausalLM.from_pretrained(
