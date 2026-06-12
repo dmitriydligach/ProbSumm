@@ -1,17 +1,17 @@
-import re, json, pandas
+import re, yaml, pandas
 from pathlib import Path
 from datasets import Dataset
 from rouge_score import rouge_scorer as rouge_scorer_lib
 
 _scorer = rouge_scorer_lib.RougeScorer(['rougeL'])
 
-_CONFIG_PATH = Path(__file__).parent / 'config.json'
+_CONFIG_PATH = Path(__file__).parent / 'config.yaml'
 
 
 def load_config():
-    """Load and return the JSON config from the RL directory."""
     with open(_CONFIG_PATH) as f:
-        return json.load(f)
+        return yaml.safe_load(f)
+
 
 # The system prompt instructs the model to reason first, then output a
 # semicolon-separated problem list inside <answer> tags so reward functions

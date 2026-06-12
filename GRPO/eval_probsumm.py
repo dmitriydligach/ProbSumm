@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../Lib'))
 import data as lib_data
 
 from probsumm_utils import (load_config, load_dataset_from_csv, make_conversation,
-                             extract_answer)
+                            extract_answer)
 
 cfg = load_config()
 
@@ -60,10 +60,12 @@ dev_dataset = full_dataset.select(range(split, len(full_dataset)))
 
 tokenizer = AutoTokenizer.from_pretrained(cfg['model_id'], clean_up_tokenization_spaces=False)
 
+
 def truncate_prompt(example):
     tokens = tokenizer(example['input_text'], truncation=True, max_length=cfg['training']['max_prompt_length'])
     example['input_text'] = tokenizer.decode(tokens['input_ids'], skip_special_tokens=True)
     return example
+
 
 dev_dataset = dev_dataset.map(truncate_prompt)
 dev_dataset = dev_dataset.map(make_conversation)

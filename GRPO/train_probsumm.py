@@ -3,7 +3,7 @@ from peft import LoraConfig, get_peft_model
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import GRPOConfig, GRPOTrainer
 from probsumm_utils import (load_config, load_dataset_from_csv, make_conversation,
-                             extract_answer, normalize)
+                            extract_answer, normalize)
 
 cfg = load_config()
 
@@ -21,11 +21,14 @@ device_map = 'auto' if local_rank == -1 else {'': local_rank}
 
 tokenizer = AutoTokenizer.from_pretrained(cfg['model_id'], clean_up_tokenization_spaces=False)
 
+
 def truncate_prompt(example):
     """Truncate input_text to max_prompt_length tokens before conversation formatting."""
+
     tokens = tokenizer(example['input_text'], truncation=True, max_length=cfg['training']['max_prompt_length'])
     example['input_text'] = tokenizer.decode(tokens['input_ids'], skip_special_tokens=True)
     return example
+
 
 train_dataset = train_dataset.map(truncate_prompt)
 train_dataset = train_dataset.map(make_conversation)
