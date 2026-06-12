@@ -5,12 +5,15 @@ The prompt may contain a file, e.g.
 [/home/dima/Data/MimicIII/Discharge/Text/160090_discharge.txt]. Summarize!
 """
 
-import transformers, torch, os, json, argparse, warnings, utils
+import transformers, torch, os, json, argparse, logging, utils
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, GenerationConfig
+from peft import PeftModel
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-warnings.filterwarnings('ignore', message='.*clean_up_tokenization_spaces.*')
+
+logging.getLogger('transformers').addFilter(
+  lambda r: 'clean_up_tokenization_spaces' not in r.getMessage())
 
 def main(settings_file):
   """Chat with Llama"""
@@ -29,6 +32,10 @@ def main(settings_file):
     settings['model_path'],
     quantization_config=quant_config,
     device_map=settings['device_map'])
+
+  if 'adapter_path' in settings:
+    print(f"Loading adapter: {settings['adapter_path']}")
+    model = PeftModel.from_pretrained(model, settings['adapter_path'])
 
   generator = transformers.pipeline(
     task='text-generation',
